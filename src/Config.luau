@@ -24,8 +24,8 @@ Config.BASE_SUFFIXES = {
 	"Nod",
 }
 
-local PREFIXES = { "", "U", "D", "T", "Qa", "Qt", "Sx", "Sp", "O", "N" }
-local ROOTS = { "Vg", "Tg", "Qd", "Qi", "He", "St", "Og", "Nn", "Ce" }
+local PREFIXES = {"", "U", "D", "T", "Qa", "Qt", "Sx", "Sp", "O", "N"}
+local ROOTS = {"Vg", "Tg", "Qd", "Qi", "He", "St", "Og", "Nn", "Ce"}
 
 for _, root in ROOTS do
 	for _, prefix in PREFIXES do

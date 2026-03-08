@@ -16,6 +16,7 @@ export type Scalor = typeof(setmetatable({} :: {
     div: (self: Scalor, value: ScalorInput) -> Scalor,
     mod: (self: Scalor, value: ScalorInput) -> Scalor,
     exp: (self: Scalor, value: ScalorInput) -> Scalor,
+    compare: (self: Scalor, value: ScalorInput) -> number,
     Scientific: (self: Scalor) -> string,
     Short: (self: Scalor) -> string,
 
@@ -25,6 +26,10 @@ export type Scalor = typeof(setmetatable({} :: {
     __div: (left: ScalorInput, right: ScalorInput) -> Scalor,
     __mod: (left: ScalorInput, right: ScalorInput) -> Scalor,
     __pow: (left: ScalorInput, right: ScalorInput) -> Scalor,
+    __concat: (left: ScalorInput, right: ScalorInput) -> string,
+    __eq: (left: ScalorInput, right: ScalorInput) -> boolean,
+    __lt: (left: ScalorInput, right: ScalorInput) -> boolean,
+    __le: (left: ScalorInput, right: ScalorInput) -> boolean,
     __unm: (value: ScalorInput) -> Scalor,
     __tostring: (value: Scalor) -> string,
 	__len: (value: Scalor) -> string
@@ -167,6 +172,47 @@ local function shift(value: number, decimals: number): string
 	local whole = value // 100
 	local fraction = value - whole * 100
 	return whole .. '.' .. (fraction // 10) .. (fraction % 10)
+end
+
+local function compare(left: ScalorInput, right: ScalorInput): number
+	local left_mantissa, left_exponent = scientific(left)
+	local right_mantissa, right_exponent = scientific(right)
+
+	if left_mantissa == right_mantissa and left_exponent == right_exponent then
+		return 0
+	end
+
+	if left_mantissa == 0 then
+		return right_mantissa > 0 and -1 or 1
+	end
+
+	if right_mantissa == 0 then
+		return left_mantissa < 0 and -1 or 1
+	end
+
+	local left_negative = left_mantissa < 0
+	local right_negative = right_mantissa < 0
+	if left_negative ~= right_negative then
+		return left_negative and -1 or 1
+	end
+
+	if left_exponent ~= right_exponent then
+		if left_negative then
+			return left_exponent > right_exponent and -1 or 1
+		end
+
+		return left_exponent < right_exponent and -1 or 1
+	end
+
+	return left_mantissa < right_mantissa and -1 or 1
+end
+
+local function concat_value(value: ScalorInput): string
+	if type(value) == "table" then
+		return (value :: Scalor):Scientific()
+	end
+
+	return tostring(value)
 end
 
 local function add(left_mantissa: number, left_exponent: number, right_mantissa: number, right_exponent: number): (number, number)
@@ -385,6 +431,10 @@ function Scalor.exp(self: Scalor, value: ScalorInput): Scalor
 	return self
 end
 
+function Scalor.Compare(self: Scalor, value: ScalorInput): number
+	return compare(self, value)
+end
+
 function Scalor.Scientific(self: Scalor): string
 	local mantissa, exponent = self.mantissa, self.exponent
 	if mantissa == 0 then
@@ -526,6 +576,22 @@ function Scalor.__pow(left: ScalorInput, right: ScalorInput): Scalor
 			scientific(right)
         )
     )
+end
+
+function Scalor.__concat(left: ScalorInput, right: ScalorInput): string
+	return concat_value(left) .. concat_value(right)
+end
+
+function Scalor.__eq(left: ScalorInput, right: ScalorInput): boolean
+	return compare(left, right) == 0
+end
+
+function Scalor.__lt(left: ScalorInput, right: ScalorInput): boolean
+	return compare(left, right) < 0
+end
+
+function Scalor.__le(left: ScalorInput, right: ScalorInput): boolean
+	return compare(left, right) <= 0
 end
 
 function Scalor.__unm(value: ScalorInput): Scalor

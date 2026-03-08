@@ -17,7 +17,7 @@ That makes math, parsing, and formatting consistent.
 
 ## Files
 
-- [Scalor.luau](./src/init.luau): the number type
+- [Scalor.luau](./src/Scalor.luau): the number type
 - [Config.luau](./src/Config.luau): suffixes and internal limits
 
 ## Setup
@@ -36,13 +36,13 @@ local Scalor = require(path.to.Scalor)
 local a = Scalor.new(1.25, 6)   -- 1.25e6 (Scalor Object)
 local b = Scalor.new(5, 3)      -- 5e3 (Scalor Object)
 
-print(a:Scientific())           -- 1.25e6 (string)
-print(a:Short())                -- 1.25M (string)
+print(a:Scientific())           -- 1.25e6 (String)
+print(a:Short())                -- 1.25M (String)
 
-print((a + b):Scientific())     -- new Scalor
+print((a + b):Scientific())     -- new Scalor Object
 
 a:add("250K")                   -- mutates a
-print(a:Short())                -- 1.50M
+print(a:Short())                -- 1.50M (String)
 ```
 
 ## Accepted Inputs
@@ -99,6 +99,37 @@ value:mul(3)
 value:div("2")
 ```
 
+## Comparison Helper
+
+### `value:Compare(input)`
+
+Compares a `Scalor` to another accepted input without relying on `==`.
+
+Return values:
+
+- `0` if both values are equal
+- `< 0` if `value` is smaller
+- `> 0` if `value` is larger
+
+This is the reliable way to compare a `Scalor` against:
+
+- another `Scalor`
+- a `number`
+- a plain number string like `"125000"`
+- a scientific string like `"1e6"`
+- a short string like `"1.25M"`
+
+Example:
+
+```luau
+local value = Scalor.new(1, 3)
+
+print(value:Compare(1000) == 0)
+print(value:Compare("1e3") == 0)
+print(value:Compare("1K") == 0)
+print(value:Compare("2K") < 0)
+```
+
 ## Operators
 
 These create and return a new `Scalor`.
@@ -110,8 +141,29 @@ These create and return a new `Scalor`.
 - `a % b`
 - `a ^ b`
 - `-a`
+- `a .. b`
+- `a == b`
+- `a < b`
+- `a <= b`
 
 `tostring(a)` uses scientific formatting.
+
+Comparison operators coerce inputs through the same parser used by the math methods, so they can compare against:
+
+- another `Scalor`
+- a plain number string like `"125000"`
+- a scientific string like `"9.9e12"`
+- a short string like `"1.25M"`
+
+Concatenation renders any `Scalor` operand with `Scientific()` first.
+
+Examples:
+
+```luau
+print(Scalor.new(1.25, 6) .. " total") -- 1.25e6 total
+print(Scalor.new(5, 3) < "1.25M")      -- true
+print(Scalor.new(5, 3) <= 5000)        -- true
+```
 
 ## Formatting
 
@@ -173,6 +225,7 @@ Largest safe integer used when validating exponents for `^` / `:exp(...)`.
 
 - `^` and `:exp(...)` only support integer exponents
 - `%` and `:mod(...)` only work when both values fit in a regular Luau number
+- Luau does not dispatch `==` against raw `number` or `string` operands, so mixed-type equality like `scalor == "1e3"` will not use `__eq`; use `value:Compare(input) == 0` instead
 - `Scalor` still uses Luau `number` internally, so it is not arbitrary-precision math
 
 ## Notes

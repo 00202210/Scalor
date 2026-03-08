@@ -101,19 +101,13 @@ value:div("2")
 value:root(3)
 ```
 
-## Comparison Helper
+## Equality Helper
 
-### `value:Compare(input)`
+### `value:Equals(input)`
 
-Compares a `Scalor` to another accepted input without relying on `==`.
+Returns `true` when a `Scalor` equals another accepted input, without relying on `==`.
 
-Return values:
-
-- `0` if both values are equal
-- `< 0` if `value` is smaller
-- `> 0` if `value` is larger
-
-This is the reliable way to compare a `Scalor` against:
+This is the reliable way to check equality against:
 
 - another `Scalor`
 - a `number`
@@ -126,10 +120,10 @@ Example:
 ```luau
 local value = Scalor.new(1, 3)
 
-print(value:Compare(1000) == 0)
-print(value:Compare("1e3") == 0)
-print(value:Compare("1K") == 0)
-print(value:Compare("2K") < 0)
+print(value:Equals(1000))
+print(value:Equals("1e3"))
+print(value:Equals("1K"))
+print(value:Equals("2K"))
 ```
 
 ## Operators
@@ -235,7 +229,7 @@ Largest safe integer used when validating integer exponents and root degrees.
 - `:pow(...)` only supports integer exponents
 - `^` supports fractional exponents for compatible real-valued inputs
 - `%` and `:mod(...)` only work when both values fit in a regular Luau number
-- Luau does not dispatch `==` against raw `number` or `string` operands, so mixed-type equality like `scalor == "1e3"` will not use `__eq`; use `value:Compare(input) == 0` instead
+- Luau does not dispatch `==` against raw `number` or `string` operands, so mixed-type equality like `scalor == "1e3"` will not use `__eq`; use `value:Equals(input)` instead
 - `Scalor` still uses Luau `number` internally, so it is not arbitrary-precision math
 
 ## Notes

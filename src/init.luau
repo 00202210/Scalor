@@ -15,8 +15,10 @@ export type Scalor = typeof(setmetatable({} :: {
     mul: (self: Scalor, value: ScalorInput) -> Scalor,
     div: (self: Scalor, value: ScalorInput) -> Scalor,
     mod: (self: Scalor, value: ScalorInput) -> Scalor,
-    exp: (self: Scalor, value: ScalorInput) -> Scalor,
-    compare: (self: Scalor, value: ScalorInput) -> number,
+    pow: (self: Scalor, value: ScalorInput) -> Scalor,
+    root: (self: Scalor, degree: ScalorInput) -> Scalor,
+
+    Compare: (self: Scalor, value: ScalorInput) -> number,
     Scientific: (self: Scalor) -> string,
     Short: (self: Scalor) -> string,
 
@@ -32,16 +34,25 @@ export type Scalor = typeof(setmetatable({} :: {
     __le: (left: ScalorInput, right: ScalorInput) -> boolean,
     __unm: (value: ScalorInput) -> Scalor,
     __tostring: (value: Scalor) -> string,
-	__len: (value: Scalor) -> string
+    __len: (value: Scalor) -> number
 }, {}))
 
 local Scalor = {}
 Scalor.__index = Scalor
 
 local function normalize(mantissa: number, exponent: number): (number, number)
-	assert(mantissa == mantissa and not math.isinf(mantissa), "mantissa must be finite")
-	assert(exponent == exponent and not math.isinf(exponent), "exponent must be finite")
-	assert(exponent % 1 == 0, "exponent must be an integer")
+	assert(
+		mantissa == mantissa and not math.isinf(mantissa), 
+		"mantissa must be finite"
+	)
+	assert(
+		exponent == exponent and not math.isinf(exponent), 
+		"exponent must be finite"
+	)
+	assert(
+		exponent % 1 == 0, 
+		"exponent must be an integer"
+	)
 
 	if mantissa == 0 then
 		return 0, 0
@@ -74,7 +85,7 @@ local function scientific(value: ScalorInput): (number, number)
             0
         )
 	elseif kind == "table" then
-		local data = value :: Scalor
+		local data = value
 		return normalize(
             data.mantissa, 
             data.exponent
@@ -117,7 +128,10 @@ local function scientific(value: ScalorInput): (number, number)
 					error(`scientific exponent must be an integer: {text}`)
 				end
 
-				return normalize(mantissa, exponent)
+				return normalize(
+					mantissa, 
+					exponent
+				)
 			end
 		end
 
@@ -127,7 +141,10 @@ local function scientific(value: ScalorInput): (number, number)
 				error(`parsed value is not finite: {text}`)
 			end
 
-			return normalize(direct, 0)
+			return normalize(
+				direct, 
+				0
+			)
 		end
 
 		local split = #trimmed
@@ -155,7 +172,10 @@ local function scientific(value: ScalorInput): (number, number)
 			error(`unknown suffix in abbreviated number: {text}`)
 		end
 
-		return normalize(mantissa, (power - 1) * 3)
+		return normalize(
+			mantissa, 
+			(power - 1) * 3
+		)
 	end
 end
 
@@ -209,7 +229,7 @@ end
 
 local function concat_value(value: ScalorInput): string
 	if type(value) == "table" then
-		return (value :: Scalor):Scientific()
+		return value:Scientific()
 	end
 
 	return tostring(value)
@@ -266,7 +286,10 @@ local function mul(left_mantissa: number, left_exponent: number, right_mantissa:
 end
 
 local function div(left_mantissa: number, left_exponent: number, right_mantissa: number, right_exponent: number): (number, number)
-	assert(right_mantissa ~= 0, "division by zero")
+	assert(
+		right_mantissa ~= 0, 
+		"division by zero"
+	)
 
 	if left_mantissa == 0 then
 		return 0, 0
@@ -280,35 +303,65 @@ end
 
 local function regular_value(mantissa: number, exponent: number, operation: string): number
 	local value = mantissa * 10 ^ exponent
-	assert(value == value and not math.isinf(value), `{operation} only supports values that fit in a regular number`)
+	assert(
+		value == value and not math.isinf(value), 
+		`{operation} only supports values that fit in a regular number`
+	)
 	return value
 end
 
 local function integer_value(mantissa: number, exponent: number, operation: string): number
-	local value = regular_value(mantissa, exponent, operation)
-	assert(value % 1 == 0, `${operation} requires an integer exponent`)
-	assert(math.abs(value) <= MAX_SAFE_INTEGER, `${operation} exponent is too large`)
+	local value = regular_value(
+		mantissa, 
+		exponent, 
+		operation
+	)
+	assert(
+		value % 1 == 0, 
+		`${operation} requires an integer exponent`
+	)
+	assert(
+		math.abs(value) <= MAX_SAFE_INTEGER, 
+		`${operation} exponent is too large`
+	)
 	return value
 end
 
 local function mod(left_mantissa: number, left_exponent: number, right_mantissa: number, right_exponent: number): (number, number)
-	assert(right_mantissa ~= 0, "modulo by zero")
+	assert(
+		right_mantissa ~= 0, 
+		"modulo by zero"
+	)
 
 	if left_mantissa == 0 then
 		return 0, 0
 	end
 
 	return normalize(
-		regular_value(left_mantissa, left_exponent, "modulo") % regular_value(right_mantissa, right_exponent, "modulo"),
+		regular_value(
+			left_mantissa, 
+			left_exponent, 
+			"modulo") % regular_value(
+				right_mantissa, 
+				right_exponent, 
+				"modulo"
+			),
 		0
 	)
 end
 
 local function exp(left_mantissa: number, left_exponent: number, right_mantissa: number, right_exponent: number): (number, number)
-	local power = integer_value(right_mantissa, right_exponent, "power")
+	local power = integer_value(
+		right_mantissa,
+		right_exponent,
+		"power"
+	)
 
 	if left_mantissa == 0 then
-		assert(power > 0, "0 cannot be raised to a non-positive power")
+		assert(
+			power > 0,
+			"0 cannot be raised to a non-positive power"
+		)
 		return 0, 0
 	end
 
@@ -332,20 +385,117 @@ local function exp(left_mantissa: number, left_exponent: number, right_mantissa:
 
 	while power > 0 do
 		if power % 2 == 1 then
-			result_mantissa, result_exponent = mul(result_mantissa, result_exponent, base_mantissa, base_exponent)
+			result_mantissa, result_exponent = mul(
+				result_mantissa,
+				result_exponent,
+				base_mantissa,
+				base_exponent
+			)
 		end
 
 		power = math.floor(power / 2)
 		if power > 0 then
-			base_mantissa, base_exponent = mul(base_mantissa, base_exponent, base_mantissa, base_exponent)
+			base_mantissa, base_exponent = mul(
+				base_mantissa,
+				base_exponent,
+				base_mantissa,
+				base_exponent
+			)
 		end
 	end
 
 	if invert then
-		return div(1, 0, result_mantissa, result_exponent)
+		return div(
+			1,
+			0,
+			result_mantissa,
+			result_exponent
+		)
 	end
 
 	return result_mantissa, result_exponent
+end
+
+local function pow(left_mantissa: number, left_exponent: number, right_mantissa: number, right_exponent: number): (number, number)
+	local power = regular_value(
+		right_mantissa, 
+		right_exponent, 
+		"power"
+	)
+	if power % 1 == 0 then
+		return exp(
+			left_mantissa,
+			left_exponent,
+			right_mantissa,
+			right_exponent
+		)
+	end
+
+	if left_mantissa == 0 then
+		assert(
+			power > 0, 
+			"0 cannot be raised to a non-positive power"
+		)
+		return 0, 0
+	end
+
+	assert(
+		left_mantissa > 0, 
+		"fractional powers of negative values are not supported"
+	)
+
+	local total_exponent = (math.log10(left_mantissa) + left_exponent) * power
+	assert(
+		total_exponent == total_exponent and not math.isinf(total_exponent), 
+		"power result is too large"
+	)
+
+	return normalize(
+		10 ^ (total_exponent - math.floor(total_exponent)),
+		math.floor(total_exponent)
+	)
+end
+
+local function root(value_mantissa: number, value_exponent: number, degree_mantissa: number, degree_exponent: number): (number, number)
+	local degree = integer_value(
+		degree_mantissa, 
+		degree_exponent, 
+		"root"
+	)
+
+	assert(
+		degree > 0, 
+		"root degree must be positive"
+	)
+
+	if value_mantissa == 0 then
+		return 0, 0
+	end
+
+	local sign = 1
+	local mantissa = value_mantissa
+	if mantissa < 0 then
+		assert(
+			degree % 2 == 1, 
+			"even root of a negative value is not real"
+		)
+		sign = -1
+		mantissa = -mantissa
+	end
+
+	local total_exponent = (math.log10(mantissa) + value_exponent) / degree
+	assert(
+		total_exponent == total_exponent and not math.isinf(total_exponent),
+		"root result is too large"
+	)
+
+	local rooted_exponent = math.floor(total_exponent)
+	local rooted_mantissa = 10 ^ (total_exponent - rooted_exponent)
+
+	return normalize(
+		sign * rooted_mantissa, 
+		rooted_exponent
+	)
 end
 
 function Scalor.new(mantissa: number, exponent: number?): Scalor
@@ -421,7 +571,7 @@ function Scalor.mod(self: Scalor, value: ScalorInput): Scalor
 	return self
 end
 
-function Scalor.exp(self: Scalor, value: ScalorInput): Scalor
+function Scalor.pow(self: Scalor, value: ScalorInput): Scalor
 	self.mantissa, self.exponent = exp(
         self.mantissa,
         self.exponent,
@@ -431,8 +581,21 @@ function Scalor.exp(self: Scalor, value: ScalorInput): Scalor
 	return self
 end
 
+function Scalor.root(self: Scalor, degree: ScalorInput): Scalor
+	self.mantissa, self.exponent = root(
+		self.mantissa,
+		self.exponent,
+		scientific(degree)
+	)
+
+	return self
+end
+
 function Scalor.Compare(self: Scalor, value: ScalorInput): number
-	return compare(self, value)
+	return compare(
+		self, 
+		value
+	)
 end
 
 function Scalor.Scientific(self: Scalor): string
@@ -570,7 +733,7 @@ function Scalor.__pow(left: ScalorInput, right: ScalorInput): Scalor
 	local left_mantissa, left_exponent = scientific(left)
 
 	return Scalor.new(
-        exp(
+        pow(
             left_mantissa,
             left_exponent,
 			scientific(right)
@@ -583,15 +746,24 @@ function Scalor.__concat(left: ScalorInput, right: ScalorInput): string
 end
 
 function Scalor.__eq(left: ScalorInput, right: ScalorInput): boolean
-	return compare(left, right) == 0
+	return compare(
+		left, 
+		right
+	) == 0
 end
 
 function Scalor.__lt(left: ScalorInput, right: ScalorInput): boolean
-	return compare(left, right) < 0
+	return compare(
+		left, 
+		right
+	) < 0
 end
 
 function Scalor.__le(left: ScalorInput, right: ScalorInput): boolean
-	return compare(left, right) <= 0
+	return compare(
+		left, 
+		right
+	) <= 0
 end
 
 function Scalor.__unm(value: ScalorInput): Scalor
@@ -607,8 +779,12 @@ function Scalor.__tostring(value: Scalor): string
 	return value:Scientific()
 end
 
-function Scalor.__len(value: Scalor): string
-	return value:Scientific()
+function Scalor.__len(value: Scalor): number
+	if value.mantissa == 0 then
+		return 0
+	end
+
+	return value.exponent
 end
 
 return Scalor

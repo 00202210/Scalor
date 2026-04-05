@@ -1,3 +1,4 @@
+--!strict
 local Config = require("./Config")
 
 local table_create = table.create
@@ -170,8 +171,8 @@ local HIGHER_TIER_ROOTS = {
 	"MeHect",
 }
 
-local PREFIX_CHUNKS = table_create(MAX_CACHED_GROUP)
-local STANDALONE_CHUNKS = table_create(MAX_CACHED_GROUP)
+local PREFIX_CHUNKS = table_create(MAX_CACHED_GROUP) :: {string}
+local STANDALONE_CHUNKS = table_create(MAX_CACHED_GROUP) :: {string}
 
 PREFIX_CHUNKS[1] = ""
 STANDALONE_CHUNKS[1] = STANDALONE_GROUP_SUFFIXES[1]
@@ -206,7 +207,7 @@ local function build(group: number): string?
 		return STANDALONE_CHUNKS[group]
 	end
 
-	local chunks = table_create(4)
+	local chunks = table_create(4) :: {number?}
 	local chunk_count = 0
 	local remaining = group
 
@@ -276,7 +277,7 @@ function Suffixes.BUILD_SUFFIX(power: number): string?
 		return ""
 	end
 
-	return SUFFIXES[power]
+	return SUFFIXES[power] :: string?
 end
 
 function Suffixes.PARSE_SUFFIX(text: string): number?

@@ -3,6 +3,10 @@
 `Scalor` is a small Luau number type for working with very large or very small
 values in normalized scientific notation.
 
+Roblox model:
+
+- https://create.roblox.com/store/asset/114929869300568
+
 Each value is stored as:
 
 ```text
